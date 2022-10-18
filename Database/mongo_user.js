@@ -12,8 +12,9 @@ const user = new mongoose.Schema({
     name: { type: 'string', default: null },
     email: { type: 'string', default: null },
     password: { type: 'string', default: null },
-    token: { type: 'string'},
+    token: { type: 'string' },
     cart: ['string']
+    
 })
 
 module.exports = mongoose.model('users', user);

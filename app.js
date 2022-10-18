@@ -58,7 +58,7 @@ app.get('/upload', (req, res) => {
     res.render('up.hbs')
 })
 
-app.post('/upload_file', upload.single('myfile'), (req, res,next) => {
+app.post('/upload_file', upload.single('myfile'), (req, res, next) => {
     const file = req.file
     if (!file) {
         const error = new Error('Please upload a file')
@@ -69,22 +69,23 @@ app.post('/upload_file', upload.single('myfile'), (req, res,next) => {
 })
 // when user click on a product .. grab the product id and then
 // render product page by getting data from dataBase...
-app.get('/product/:id', (req, res) => {
+app.get('/product*/:id', (req, res) => {
     const required = product_data.find(elem => elem.product_id == req.params.id)
-    const updated = product_data.filter(elem => elem.product_id == req.params.id);
+    const product_arr = product_data.filter(elem => elem.product_id == req.params.id);
     res.render('product_page.hbs', {
         required,
-        product_arr: [...updated]
+        product_arr
     })
 })
-// when user clicks on buy now button
-app.get('/:id/add_cart', auth, (req, res) => {
 
-    res.send(`product id is ${req.params.id}`)
-})
+// // when user clicks on buy now button
+// app.get('/:id/add_cart', auth, (req, res) => {
+
+//     res.send(`product id is ${req.params.id}`)
+// })
 
 // get buying data from the user...
-app.post('/:id/purchase', auth, async (req, res) => {
+app.post('*/:id/purchase', auth, async (req, res) => {
 
     try {
         const my_user = await users.findOne({ email: res.user.userEmail })
@@ -99,7 +100,7 @@ app.post('/:id/purchase', auth, async (req, res) => {
                     cart: JSON.stringify(my_object)
                 }
             })
-            res.send("Okie to go")
+            res.send("Product is added")
             return;
         } else {
             res.redirect('/logIn')
@@ -122,15 +123,47 @@ app.get('/getData', auth, async (req, res) => {
                 const { product_id, quantity } = JSON.parse(elem)
                 return { product_id, quantity }
             })
-            const price_is = await price_calculate(data);
 
-            res.render('cart.hbs', price_is)
+            if (data) {
+                const price_is = await price_calculate(data);
+
+                res.render('cart.hbs', price_is)
+            } else {
+                res.send("Please add something in cart first")
+            }
         } else {
             res.sendStatus("User is not logged in")
         }
     } catch (error) {
         console.log(error)
         res.status(403).send("Something went wrong")
+    }
+})
+
+// remove an item from the cart...get id of the product.. get user
+// then remove specific product from that user's cart...
+
+app.get('/cart/:id/:quant/remove', auth, async (req, res) => {
+    const my_user = users.findOne({ email: res.user.userEmail })
+
+    try {
+
+        const to_be_searched = JSON.stringify({
+            product_id: req.params.id, quantity: req.params.quant
+        })
+      
+        if (my_user) {
+
+            await users.updateOne(my_user, {
+                $pull: { "cart": to_be_searched }
+            })
+            res.redirect('/getData')
+        } else {
+            res.redirect('/logIn')
+        }
+    } catch (error) {
+        console.log(error)
+        res.send(error.message)
     }
 })
 
@@ -147,11 +180,8 @@ app.post('/login_form', async (req, res) => {
         const old = await users.findOne({ email: userEmail })
 
         if (old) {
-            const addition = {
-                product_id: '23', quantity: 'pb69'
-            }
-
-            await users.updateOne(old, { $push: { cart: JSON.stringify(addition) } })
+        
+            // await users.updateOne(old, { $push: { cart: JSON.stringify(addition) } })
 
             const correct_pass = await bcrypt.compare(userPassword, old.password)
 
