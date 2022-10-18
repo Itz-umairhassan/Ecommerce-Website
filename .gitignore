@@ -2,3 +2,7 @@ multer_uploader.js
 /uploaded
 /node_modules
 /static/eco_style.css
+cart.html
+home.html
+payment.html
+product_page.html
